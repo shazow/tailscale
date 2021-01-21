@@ -42,6 +42,7 @@ import (
 // Config represents an instance of logs in a collection.
 type Config struct {
 	Collection string
+	Target     string
 	PrivateID  logtail.PrivateID
 	PublicID   logtail.PublicID
 }
@@ -344,6 +345,7 @@ func New(collection, target string) *Policy {
 		earlyLogf("logpolicy.Read %v: %v", cfgPath, err)
 		oldc = &Config{}
 		oldc.Collection = collection
+		oldc.Target = target
 	} else {
 		oldc, err = ConfigFromBytes(data)
 		if err != nil {
@@ -353,6 +355,11 @@ func New(collection, target string) *Policy {
 	}
 
 	newc := *oldc
+
+	if newc.Target == "" {
+		newc.Target = target
+	}
+
 	if newc.Collection != collection {
 		log.Printf("logpolicy.Config: config collection %q does not match %q", newc.Collection, collection)
 		// We picked up an incompatible config file.
@@ -384,7 +391,7 @@ func New(collection, target string) *Policy {
 			}
 			return w
 		},
-		HTTPC: &http.Client{Transport: newLogtailTransport(logtail.DefaultHost)},
+		HTTPC: &http.Client{Transport: newLogtailTransport(newc.Target)},
 	}
 
 	filchBuf, filchErr := filch.New(filepath.Join(dir, cmdName), filch.Options{})
