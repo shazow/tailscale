@@ -30,6 +30,7 @@ import (
 	"tailscale.com/derp"
 	"tailscale.com/derp/derphttp"
 	"tailscale.com/logpolicy"
+	"tailscale.com/logtail"
 	"tailscale.com/metrics"
 	"tailscale.com/net/stun"
 	"tailscale.com/tsweb"
@@ -48,6 +49,7 @@ var (
 	runSTUN       = flag.Bool("stun", false, "also run a STUN server")
 	meshPSKFile   = flag.String("mesh-psk-file", defaultMeshPSKFile(), "if non-empty, path to file containing the mesh pre-shared key file. It should contain some hex string; whitespace is trimmed.")
 	meshWith      = flag.String("mesh-with", "", "optional comma-separated list of hostnames to mesh with; the server's own hostname can be in the list")
+	logTarget     = flag.String("log-target", logtail.DefaultHost, "where to send logs to")
 )
 
 type config struct {
@@ -115,7 +117,7 @@ func main() {
 
 	var logPol *logpolicy.Policy
 	if *logCollection != "" {
-		logPol = logpolicy.New(*logCollection)
+		logPol = logpolicy.New(*logCollection, *logTarget)
 		log.SetOutput(logPol.Logtail)
 	}
 

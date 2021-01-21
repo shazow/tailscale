@@ -27,6 +27,7 @@ import (
 	"github.com/apenwarr/fixconsole"
 	"tailscale.com/ipn/ipnserver"
 	"tailscale.com/logpolicy"
+	"tailscale.com/logtail"
 	"tailscale.com/paths"
 	"tailscale.com/types/flagtype"
 	"tailscale.com/types/logger"
@@ -66,6 +67,7 @@ var args struct {
 	statepath  string
 	socketpath string
 	verbose    int
+	logtarget  string
 }
 
 func main() {
@@ -87,6 +89,7 @@ func main() {
 	flag.StringVar(&args.statepath, "state", paths.DefaultTailscaledStateFile(), "path of state file")
 	flag.StringVar(&args.socketpath, "socket", paths.DefaultTailscaledSocket(), "path of the service unix socket")
 	flag.BoolVar(&printVersion, "version", false, "print version information and exit")
+	flag.StringVar(&args.logtarget, "logtarget", logtail.DefaultHost, "where to replicate service logs to")
 
 	err := fixconsole.FixConsoleIfNeeded()
 	if err != nil {
@@ -120,7 +123,7 @@ func main() {
 func run() error {
 	var err error
 
-	pol := logpolicy.New("tailnode.log.tailscale.io")
+	pol := logpolicy.New("tailnode.log.tailscale.io", args.logtarget)
 	pol.SetVerbosityLevel(args.verbose)
 	defer func() {
 		// Finish uploading logs after closing everything else.

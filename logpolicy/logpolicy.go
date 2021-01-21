@@ -308,8 +308,8 @@ func tryFixLogStateLocation(dir, cmdname string) {
 }
 
 // New returns a new log policy (a logger and its instance ID) for a
-// given collection name.
-func New(collection string) *Policy {
+// given collection name logging to a given target.
+func New(collection, target string) *Policy {
 	var lflags int
 	if term.IsTerminal(2) || runtime.GOOS == "windows" {
 		lflags = 0

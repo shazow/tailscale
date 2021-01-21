@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"tailscale.com/logpolicy"
+	"tailscale.com/logtail"
 	"tailscale.com/tsweb"
 )
 
@@ -35,13 +36,14 @@ var (
 	nodeExporter  = flag.String("node-exporter", "http://localhost:9100", "URL of the local prometheus node exporter")
 	goVarsURL     = flag.String("go-vars-url", "http://localhost:8383/debug/vars", "URL of a local Go server's /debug/vars endpoint")
 	insecure      = flag.Bool("insecure", false, "serve over http, for development")
+	logTarget     = flag.String("log-target", logtail.DefaultHost, "where to send logs to")
 )
 
 func main() {
 	flag.Parse()
 
 	if *logCollection != "" {
-		logpolicy.New(*logCollection)
+		logpolicy.New(*logCollection, *logTarget)
 	}
 
 	ne, err := url.Parse(*nodeExporter)
