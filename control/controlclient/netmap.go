@@ -260,7 +260,6 @@ type WGConfigFlags int
 const (
 	AllowSingleHosts WGConfigFlags = 1 << iota
 	AllowSubnetRoutes
-	AllowDefaultRoute
 )
 
 // EndpointDiscoSuffix is appended to the hex representation of a peer's discovery key
@@ -269,7 +268,7 @@ const (
 const EndpointDiscoSuffix = ".disco.tailscale:12345"
 
 // WGCfg returns the NetworkMaps's Wireguard configuration.
-func (nm *NetworkMap) WGCfg(logf logger.Logf, flags WGConfigFlags) (*wgcfg.Config, error) {
+func (nm *NetworkMap) WGCfg(logf logger.Logf, flags WGConfigFlags, defaultVia netaddr.IP) (*wgcfg.Config, error) {
 	cfg := &wgcfg.Config{
 		Name:       "tailscale",
 		PrivateKey: wgcfg.PrivateKey(nm.PrivateKey),
@@ -280,10 +279,6 @@ func (nm *NetworkMap) WGCfg(logf logger.Logf, flags WGConfigFlags) (*wgcfg.Confi
 
 	for _, peer := range nm.Peers {
 		if Debug.OnlyDisco && peer.DiscoKey.IsZero() {
-			continue
-		}
-		if (flags&AllowSingleHosts) == 0 && len(peer.AllowedIPs) < 2 {
-			logf("wgcfg: %v skipping a single-host peer.", peer.Key.ShortString())
 			continue
 		}
 		cfg.Peers = append(cfg.Peers, wgcfg.Peer{
@@ -309,12 +304,18 @@ func (nm *NetworkMap) WGCfg(logf logger.Logf, flags WGConfigFlags) (*wgcfg.Confi
 				}
 			}
 		}
+
+		var isDefaultRouter bool
+		for _, addr := range peer.Addresses {
+			if addr.IP == defaultVia {
+				isDefaultRouter = true
+				break
+			}
+		}
+
 		for _, allowedIP := range peer.AllowedIPs {
-			if allowedIP.Bits == 0 {
-				if (flags & AllowDefaultRoute) == 0 {
-					logf("[v1] wgcfg: %v skipping default route", peer.Key.ShortString())
-					continue
-				}
+			if allowedIP.Bits == 0 && !isDefaultRouter {
+				continue
 			} else if cidrIsSubnet(peer, allowedIP) {
 				if (flags & AllowSubnetRoutes) == 0 {
 					logf("[v1] wgcfg: %v skipping subnet route", peer.Key.ShortString())

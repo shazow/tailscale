@@ -28,8 +28,8 @@ type Prefs struct {
 	// ControlURL is the URL of the control server to use.
 	ControlURL string
 
-	// RouteAll specifies whether to accept subnet and default routes
-	// advertised by other nodes on the Tailscale network.
+	// RouteAll specifies whether to accept subnets advertised by
+	// other nodes on the Tailscale network.
 	RouteAll bool
 
 	// AllowSingleHosts specifies whether to install routes for each
@@ -43,6 +43,17 @@ type Prefs struct {
 	// all that we need. But when I turn this off in my tailscaled,
 	// packets stop flowing. What's up with that?
 	AllowSingleHosts bool
+
+	// DefaultRouteVia specifies a Tailscale IP address of the node
+	// that should be used as a default route. If no node in the
+	// network has this IP, a blackhole route is installed to avoid
+	// leaking traffic until the user explicitly turns off default
+	// routing.
+	//
+	// We use a Tailscale IP as an identifier here because we have no
+	// other stable ID for a node. TODO(danderson): create better
+	// identifiers we can use?
+	DefaultRouteVia netaddr.IP
 
 	// CorpDNS specifies whether to install the Tailscale network's
 	// DNS configuration, if it exists.
@@ -191,6 +202,7 @@ func (p *Prefs) Equals(p2 *Prefs) bool {
 		p.ControlURL == p2.ControlURL &&
 		p.RouteAll == p2.RouteAll &&
 		p.AllowSingleHosts == p2.AllowSingleHosts &&
+		p.DefaultRouteVia == p2.DefaultRouteVia &&
 		p.CorpDNS == p2.CorpDNS &&
 		p.WantRunning == p2.WantRunning &&
 		p.NotepadURLs == p2.NotepadURLs &&

@@ -1185,8 +1185,6 @@ func (b *LocalBackend) authReconfig() {
 
 	var flags controlclient.WGConfigFlags
 	if uc.RouteAll {
-		flags |= controlclient.AllowDefaultRoute
-		// TODO(apenwarr): Make subnet routes a different pref?
 		flags |= controlclient.AllowSubnetRoutes
 	}
 	if uc.AllowSingleHosts {
@@ -1199,7 +1197,7 @@ func (b *LocalBackend) authReconfig() {
 		}
 	}
 
-	cfg, err := nm.WGCfg(b.logf, flags)
+	cfg, err := nm.WGCfg(b.logf, flags, uc.DefaultRouteVia)
 	if err != nil {
 		b.logf("wgcfg: %v", err)
 		return
@@ -1238,6 +1236,11 @@ func magicDNSRootDomains(nm *controlclient.NetworkMap) []string {
 	return nil
 }
 
+var (
+	ipv4Default = netaddr.MustParseIPPrefix("0.0.0.0/0")
+	ipv6Default = netaddr.MustParseIPPrefix("::/0")
+)
+
 // routerConfig produces a router.Config from a wireguard config and IPN prefs.
 func routerConfig(cfg *wgcfg.Config, prefs *Prefs) *router.Config {
 	rs := &router.Config{
@@ -1249,6 +1252,32 @@ func routerConfig(cfg *wgcfg.Config, prefs *Prefs) *router.Config {
 
 	for _, peer := range cfg.Peers {
 		rs.Routes = append(rs.Routes, unmapIPPrefixes(peer.AllowedIPs)...)
+	}
+
+	// Sanity check: we expect the control server to program both a v4
+	// and a v6 default route, if default routing is on. Fill in
+	// blackhole routes appropriately if we're missing some. This is
+	// likely to break some functionality, but if the user expressed a
+	// preference for routing remotely, we want to avoid leaking
+	// traffic at the expense of functionality.
+	if !prefs.DefaultRouteVia.IsZero() {
+		var default4, default6 bool
+		for _, route := range rs.Routes {
+			if route == ipv4Default {
+				default4 = true
+			} else if route == ipv6Default {
+				default6 = true
+			}
+			if default4 && default6 {
+				break
+			}
+		}
+		if !default4 {
+			rs.Routes = append(rs.Routes, ipv4Default)
+		}
+		if !default6 {
+			rs.Routes = append(rs.Routes, ipv6Default)
+		}
 	}
 
 	rs.Routes = append(rs.Routes, netaddr.IPPrefix{

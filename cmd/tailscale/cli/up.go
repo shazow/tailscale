@@ -45,6 +45,7 @@ specify any flags, options are reset to their default.
 		upf.BoolVar(&upArgs.acceptRoutes, "accept-routes", false, "accept routes advertised by other Tailscale nodes")
 		upf.BoolVar(&upArgs.acceptDNS, "accept-dns", true, "accept DNS configuration from the admin panel")
 		upf.BoolVar(&upArgs.singleRoutes, "host-routes", true, "install host routes to other Tailscale nodes")
+		upf.StringVar(&upArgs.defaultVia, "exit-node", "", "Tailscale IP of the machine through which to route all traffic")
 		upf.BoolVar(&upArgs.shieldsUp, "shields-up", false, "don't allow incoming connections")
 		upf.BoolVar(&upArgs.forceReauth, "force-reauth", false, "force reauthentication")
 		upf.StringVar(&upArgs.advertiseTags, "advertise-tags", "", "ACL tags to request (comma-separated, e.g. eng,montreal,ssh)")
@@ -74,6 +75,7 @@ var upArgs struct {
 	acceptRoutes    bool
 	acceptDNS       bool
 	singleRoutes    bool
+	defaultVia      string
 	shieldsUp       bool
 	forceReauth     bool
 	advertiseRoutes string
@@ -138,6 +140,9 @@ func runUp(ctx context.Context, args []string) error {
 		if upArgs.acceptRoutes {
 			return errors.New("--accept-routes is " + notSupported)
 		}
+		if upArgs.defaultVia != "" {
+			return errors.New("--exit-node is " + notSupported)
+		}
 		if upArgs.netfilterMode != "off" {
 			return errors.New("--netfilter-mode values besides \"off\" " + notSupported)
 		}
@@ -170,6 +175,15 @@ func runUp(ctx context.Context, args []string) error {
 		checkIPForwarding()
 	}
 
+	var defaultVia netaddr.IP
+	if upArgs.defaultVia != "" {
+		var err error
+		defaultVia, err = netaddr.ParseIP(upArgs.defaultVia)
+		if err != nil {
+			fatalf("invalid IP address %q for --exit-node: %v", upArgs.defaultVia, err)
+		}
+	}
+
 	var tags []string
 	if upArgs.advertiseTags != "" {
 		tags = strings.Split(upArgs.advertiseTags, ",")
@@ -190,6 +204,7 @@ func runUp(ctx context.Context, args []string) error {
 	prefs.ControlURL = upArgs.server
 	prefs.WantRunning = true
 	prefs.RouteAll = upArgs.acceptRoutes
+	prefs.DefaultRouteVia = defaultVia
 	prefs.CorpDNS = upArgs.acceptDNS
 	prefs.AllowSingleHosts = upArgs.singleRoutes
 	prefs.ShieldsUp = upArgs.shieldsUp

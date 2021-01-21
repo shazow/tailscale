@@ -284,7 +284,7 @@ func meshStacks(logf logger.Logf, ms []*magicStack) (cleanup func()) {
 				peerSet[key.Public(peer.Key)] = struct{}{}
 			}
 			m.conn.UpdatePeers(peerSet)
-			wg, err := netmap.WGCfg(logf, controlclient.AllowSingleHosts)
+			wg, err := netmap.WGCfg(logf, controlclient.AllowSingleHosts, netaddr.IP{})
 			if err != nil {
 				// We're too far from the *testing.T to be graceful,
 				// blow up. Shouldn't happen anyway.

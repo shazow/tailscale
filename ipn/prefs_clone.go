@@ -35,6 +35,7 @@ var _PrefsNeedsRegeneration = Prefs(struct {
 	ControlURL       string
 	RouteAll         bool
 	AllowSingleHosts bool
+	DefaultRouteVia  netaddr.IP
 	CorpDNS          bool
 	WantRunning      bool
 	ShieldsUp        bool
