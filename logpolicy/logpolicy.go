@@ -381,6 +381,7 @@ func New(collection, target string) *Policy {
 	}
 
 	c := logtail.Config{
+		BaseURL:    fmt.Sprintf("https://%s", newc.Target),
 		Collection: newc.Collection,
 		PrivateID:  newc.PrivateID,
 		Stderr:     logWriter{console},
