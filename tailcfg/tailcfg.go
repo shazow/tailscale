@@ -156,9 +156,10 @@ type UserProfile struct {
 }
 
 type Node struct {
-	ID       NodeID
-	StableID StableNodeID
-	Name     string // DNS
+	ID          NodeID
+	StableID    StableNodeID
+	Name        string // DNS
+	DisplayName string // Name to display in client UIs
 
 	// User is the user who created the node. If ACL tags are in
 	// use for the node then it doesn't reflect the ACL identity
@@ -796,6 +797,7 @@ func (n *Node) Equal(n2 *Node) bool {
 		n.ID == n2.ID &&
 		n.StableID == n2.StableID &&
 		n.Name == n2.Name &&
+		n.DisplayName == n2.DisplayName &&
 		n.User == n2.User &&
 		n.Sharer == n2.Sharer &&
 		n.Key == n2.Key &&
